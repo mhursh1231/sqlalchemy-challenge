@@ -1,11 +1,16 @@
 # Import the dependencies.
 import os
+import numpy as np
 os.environ["SQLALCHEMY_SILENCE_UBER_WARNING"]="1"
-from sqlalchemy import create_engine
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine, func
+from flask import Flask, jsonify
 
 #################################################
 # Database Setup
 #################################################
+engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 
 # reflect an existing database into a new model
 Base = automap_base()
@@ -36,8 +41,9 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/[start_date format: yyyy-mm-dd]<br/>"
-        f"/api/v1.0/[start_date format: yyyy-mm-dd]/[end_date format: yyyy-mm-dd]<br/>"
+        f"/api/v1.0/yyyy-mm-dd<br/>"
+        f"/api/v1.0/yyyy-mm-dd/yyyy-mm-dd<br/>"
+    )
 
 @app.route("/api/v1.0/precipitation")
 def precipitation():
@@ -46,7 +52,7 @@ def precipitation():
 
     """Return a list of all precipitation data"""
     # Query all precipitation
-    results = session.query(Measurement.date, Measure.prcp).\
+    results = session.query(Measurement.date, Measurement.prcp).\
     filter(Measurement.date >= "2016-08-23").\
     all()
 
@@ -107,19 +113,19 @@ def tobs():
     return jsonify(all_tobs)
 
 @app.route("/api/v1.0/<start>")
-def Start_date(start_date):
+def Start_date(start):
     # Create a session (link) from Python to the DB
     session = Session(engine)
 
     """Return min, avg and max tobs for specific start date"""
     results = session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.\
-                        max(Measurement.tobs)).filter(Measurement.date >= start_date).all()
+                        max(Measurement.tobs)).filter(Measurement.date >= start).all()
 
     session.close()
 
     # Create a dictionary from the row data and append to list
     start_date_tobs = []
-    for min, avg, and max in results:
+    for min, avg, max in results:
         start_date_tobs_dict = {}
         start_date_tobs_dict["min"] = min
         start_date_tobs_dict["avg"] = avg
@@ -143,7 +149,7 @@ def Start_and_end_date(start_date, end_date):
 
     #Create a dictionary from the row data and append to list
     start_end_tobs = []
-    for min, avg, and max in results:
+    for min, avg, max in results:
         start_end_tobs_dict = {}
         start_end_tobs_dict["min"] = min
         start_end_tobs_dict["avg"] = avg
